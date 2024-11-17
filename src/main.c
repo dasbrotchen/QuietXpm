@@ -1,8 +1,16 @@
-#include <stdio.h>
 #include "converter.h"
 
-int	main(void)
+int	main(int ac, char **argv)
 {
-	printf("Hello world\n");
+	FILE	f;
+	int32_t	ret;
+
+	(void)ac;
+	ret = open_file(argv[1], &f);
+	if (ret)
+	{
+		qx_error(ret);
+		return (1);
+	}
 	return (0);
 }

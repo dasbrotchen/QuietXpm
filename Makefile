@@ -4,7 +4,9 @@ CC = cc
 
 CFLAGS = -Wall -Werror -Wextra -g -I includes -MD -MP
 
-SRCS = main.c
+SRCS = main.c \
+	   open_input_file.c \
+	   qx_errors.c
 
 INC = converter.h
 
