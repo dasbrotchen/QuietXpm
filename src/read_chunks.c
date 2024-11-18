@@ -6,12 +6,12 @@
 	data (with zlib functions) and put it in a buffer before further
 	processing.
 */
-static uint32_t	process_data_chunk(FILE **file, uint32_t len)
+static int32_t	process_data_chunk(FILE **file, uint32_t len, t_pngmdata mdata)
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
 	int32_t			ret;
-	uint64_t			have;
+	int32_t			ret_parsed;
 	z_stream		strm = {0};
 
 	strm.total_in = 0;
@@ -49,8 +49,12 @@ static uint32_t	process_data_chunk(FILE **file, uint32_t len)
 					(void)inflateEnd(&strm);
 					return (ret);
 			}
-			have = CHUNK - strm.avail_out;
-			(void)have;
+			ret_parsed = parse_data_chunk(CHUNK - strm.avail_out, out, mdata);
+			if (ret_parsed)
+			{
+				(void)inflateEnd(&strm);
+				return (ret_parsed);
+			}
 		} while (!strm.avail_out);
 	}
 	fseek(*file, CRC_OFFSET, SEEK_CUR);
@@ -81,7 +85,17 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 	mdata->width = __builtin_bswap32(mdata->width);
 	mdata->height = __builtin_bswap32(mdata->height);
 	printf("PNG file:\n\tWIDTH = %u\n\tHEIGHT = %u\n", mdata->width, mdata->height);
+	printf("\tBIT DEPTH = %d\n", mdata->bit_depth);
 	printf("\tCOLOR TYPE = %d\n", mdata->color_type);
+	printf("\tFILTER TYPE = %d\n", mdata->filter_method);
+	if (mdata->filter_method)
+		return (QX_INVALID_FILTER);
+	if (mdata->color_type != 2 && mdata->color_type != 6)
+		return (QX_INVALID_COLORTYPE);
+	if (mdata->color_type == 2)
+		mdata->channels = 3;
+	else if (mdata->color_type == 6)
+		mdata->channels = 4;
 	return (0);
 }
 
@@ -107,7 +121,7 @@ uint32_t	read_all_chunks(FILE **file)
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len);
+			ret = process_data_chunk(file, *len, mdata);
 			if (ret)
 				return (ret);
 		}

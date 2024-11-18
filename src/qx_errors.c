@@ -14,4 +14,8 @@ void	qx_error(uint32_t err_code)
 		fprintf(stderr, QX": could not inflate data chunk\n");
 	if (err_code == QX_INVALID_MDATA)
 		fprintf(stderr, QX": PNG file metadata could not be read\n");
+	if (err_code == QX_INVALID_FILTER)
+		fprintf(stderr, QX": PNG file filter method not supported (yet!)\n");
+	if (err_code == QX_INVALID_COLORTYPE)
+		fprintf(stderr, QX": PNG file color type not supported (yet!)\n");
 }

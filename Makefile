@@ -7,7 +7,9 @@ CFLAGS = -Wall -Werror -Wextra -g -I includes -MD -MP
 SRCS = main.c \
 	   open_input_file.c \
 	   qx_errors.c \
-	   read_chunks.c
+	   read_chunks.c \
+	   parse_data_chunk.c \
+	   create_color_symbols.c
 
 INC = converter.h
 
