@@ -10,4 +10,8 @@ void	qx_error(uint32_t err_code)
 		fprintf(stderr, QX": malloc failure\n");
 	if (err_code == QX_INVALID_ARG)
 		fprintf(stderr, QX": please provide one PNG file\n");
+	if (err_code == QX_INFLATEINIT_ERR)
+		fprintf(stderr, QX": could not inflate data chunk\n");
+	if (err_code == QX_INVALID_MDATA)
+		fprintf(stderr, QX": PNG file metadata could not be read\n");
 }

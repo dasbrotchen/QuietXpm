@@ -11,6 +11,8 @@ SRCS = main.c \
 
 INC = converter.h
 
+Z_LIB_PATH = /opt/homebrew/Cellar/zlib/1.3.1/lib
+
 OBJS = $(SRCS:%.c=$(OBJ_D)%.o)
 
 SRC_D = src/
@@ -22,7 +24,7 @@ $(OBJ_D)%.o: $(SRC_D)%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(NAME):	$(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $@
+	$(CC) $(CFLAGS) -L$(Z_LIB_PATH) -lz $(OBJS) -o $@
 
 DEPS = $(OBJS:.o=.d)
 
