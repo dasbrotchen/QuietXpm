@@ -26,7 +26,7 @@ $(OBJ_D)%.o: $(SRC_D)%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(NAME):	$(OBJS)
-	$(CC) $(CFLAGS) -L$(Z_LIB_PATH) -lz $(OBJS) -o $@
+	$(CC) $(CFLAGS) -L$(Z_LIB_PATH) -lz -lm $(OBJS) -o $@
 
 DEPS = $(OBJS:.o=.d)
 
