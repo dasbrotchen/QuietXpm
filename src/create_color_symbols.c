@@ -87,7 +87,11 @@ uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata, unsigne
     printf("\"%d %d %d 1\",\n", mdata.width, mdata.height, color_count);
 	int i = 0;
 	while (i < color_count)
-	{        printf("\"%c c #%.2X%.2X%.2X\",\n", '#' + i, color_table[i].r, color_table[i].g, color_table[i].b);
+	{        
+		if (!color_table[i].a) //fully transparent pixel
+			printf("\"%c c None\",\n", '#' + i);
+		else
+			printf("\"%c c #%.2X%.2X%.2X\",\n", '#' + i, color_table[i].r, color_table[i].g, color_table[i].b);
 		i++;
 	}
 	printf("/* pixels */\n");
@@ -100,6 +104,6 @@ void	convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, unsigned char byt
 {
 	uint32_t	rgba_colorcount;
 
-	rgba_colorcount = display_rgba_colors(pixel_data, mdata, bytes_pp);
+	rgba_colorcount = count_rgba_colors(pixel_data, mdata, bytes_pp);
 	(void)rgba_colorcount;
 }
