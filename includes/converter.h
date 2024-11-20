@@ -47,7 +47,14 @@ typedef struct s_rgba
 	unsigned char	a;
 }	t_rgba;
 
-void		convert_xpm(unsigned char *pixel_data, t_pngmdata mdata, unsigned char bytes_pp);
+typedef struct s_rgb
+{
+	unsigned char	r;
+	unsigned char	g;
+	unsigned char	b;
+}	t_rgb;
+
+void		convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, unsigned char bytes_pp);
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out, t_pngmdata mdata);
 uint32_t	read_all_chunks(FILE **file);
 uint32_t	open_file(const char *filename, FILE **file);

@@ -25,7 +25,7 @@ int	main(int ac, char **argv)
 		fclose(f);
 		return (1);
 	}
-	printf("success!\n");
+	//printf("success!\n");
 	fclose(f);
 	return (0);
 }

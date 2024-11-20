@@ -84,10 +84,12 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 	fseek(file, CRC_OFFSET, SEEK_CUR);
 	mdata->width = __builtin_bswap32(mdata->width);
 	mdata->height = __builtin_bswap32(mdata->height);
+	/*
 	printf("PNG file:\n\tWIDTH = %u\n\tHEIGHT = %u\n", mdata->width, mdata->height);
 	printf("\tBIT DEPTH = %d\n", mdata->bit_depth);
 	printf("\tCOLOR TYPE = %d\n", mdata->color_type);
 	printf("\tFILTER TYPE = %d\n", mdata->filter_method);
+	*/
 	if (mdata->filter_method)
 		return (QX_INVALID_FILTER);
 	if (mdata->color_type != 2 && mdata->color_type != 6)
