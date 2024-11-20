@@ -10,5 +10,5 @@ Original PNG image            |  XPM image converted back to PNG
 The left image is a small 124 x 124 pixels PNG that I found on my computer. I believe it is the logo of some programming course website, not sure. The right image is the PNG version of the XPM image reconstructed from the original PNG image.
 
 ## Challenges
-As shown on the example above, the alpha channel (yes, the test image is RGBA) is not handled properly. Instead of seeing a transparent background, we see a black one. Similarly, the 'faded' pixels in the test image also lack the A component so they appear far brighter than they should.
+Only fully transparent pixels are handled for now. As shown above, the edges of the squares and triangles are not exactly the right colour since their alpha channel is not 255.
 Another area of concern is the number of colours. The simple current implementation uses the ASCII table starting from `#' to map pixel colors. Once we reach ~, the final printable charater in the table, colors are not properly matched. 
