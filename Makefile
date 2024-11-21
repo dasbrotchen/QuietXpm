@@ -9,7 +9,9 @@ SRCS = main.c \
 	   qx_errors.c \
 	   read_chunks.c \
 	   parse_data_chunk.c \
-	   create_color_symbols.c
+	   create_color_symbols.c \
+	   hash_colortable.c \
+	   construct_colortable.c
 
 INC = converter.h
 

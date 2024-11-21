@@ -22,17 +22,7 @@ static uint32_t	validate_png(FILE *file)
 		|| !is_valid_byte(signature[5], 10)
 		|| !is_valid_byte(signature[6], 26)
 		|| !is_valid_byte(signature[7], 10))
-	{
-		printf("signature %d: %d\n",0, signature[0]);
-		printf("signature %d: %d\n",1, signature[1]);
-		printf("signature %d: %d\n",2, signature[2]);
-		printf("signature %d: %d\n",3, signature[3]);
-		printf("signature %d: %d\n",4, signature[4]);
-		printf("signature %d: %d\n",5, signature[5]);
-		printf("signature %d: %d\n",6, signature[6]);
-		printf("signature %d: %d\n",7, signature[7]);
 		return (QX_SIGN_ERR);
-	}
 	return (0);
 }
 

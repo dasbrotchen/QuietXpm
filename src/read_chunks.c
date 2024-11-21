@@ -1,4 +1,4 @@
-#include "converter.h"
+#include "colortable.h"
 
 /*
 	If an IDAT chunk has been identified, we put the compressed
@@ -6,7 +6,8 @@
 	data (with zlib functions) and put it in a buffer before further
 	processing.
 */
-static int32_t	process_data_chunk(FILE **file, uint32_t len, t_pngmdata mdata)
+static int32_t	process_data_chunk(FILE **file, uint32_t len,
+					t_pngmdata mdata, t_colortable *ct)
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
@@ -14,6 +15,7 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len, t_pngmdata mdata)
 	int32_t			ret_parsed;
 	z_stream		strm = {0};
 
+	(void)ct;
 	strm.total_in = 0;
 	strm.avail_in = 0;
 	strm.next_in = Z_NULL;
@@ -49,7 +51,7 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len, t_pngmdata mdata)
 					(void)inflateEnd(&strm);
 					return (ret);
 			}
-			ret_parsed = parse_data_chunk(CHUNK - strm.avail_out, out, mdata);
+			ret_parsed = parse_data_chunk(CHUNK - strm.avail_out, out, mdata, ct);
 			if (ret_parsed)
 			{
 				(void)inflateEnd(&strm);
@@ -62,7 +64,6 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len, t_pngmdata mdata)
     return (ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR);
 }
 
-//BSWAP ALL READ VALUES
 uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 {
 	if (len != 13)
@@ -84,12 +85,6 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 	fseek(file, CRC_OFFSET, SEEK_CUR);
 	mdata->width = __builtin_bswap32(mdata->width);
 	mdata->height = __builtin_bswap32(mdata->height);
-	/*
-	printf("PNG file:\n\tWIDTH = %u\n\tHEIGHT = %u\n", mdata->width, mdata->height);
-	printf("\tBIT DEPTH = %d\n", mdata->bit_depth);
-	printf("\tCOLOR TYPE = %d\n", mdata->color_type);
-	printf("\tFILTER TYPE = %d\n", mdata->filter_method);
-	*/
 	if (mdata->filter_method)
 		return (QX_INVALID_FILTER);
 	if (mdata->color_type != 2 && mdata->color_type != 6)
@@ -98,6 +93,7 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 		mdata->channels = 3;
 	else if (mdata->color_type == 6)
 		mdata->channels = 4;
+	mdata->bytes_pp = (mdata->bit_depth * mdata->channels) / 8;
 	return (0);
 }
 
@@ -108,7 +104,11 @@ uint32_t	read_all_chunks(FILE **file)
 	uint32_t	ret_mdata;
 	char		type[5];
 	t_pngmdata	mdata;
+	t_colortable	*ct;
 
+	ct = init_color_table();
+	if (!ct)
+		return (QX_MALLOC_ERR);
 	while (!feof(*file))
 	{
 		fread(len, 1, 4, *file);
@@ -123,7 +123,7 @@ uint32_t	read_all_chunks(FILE **file)
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len, mdata);
+			ret = process_data_chunk(file, *len, mdata, ct);
 			if (ret)
 				return (ret);
 		}

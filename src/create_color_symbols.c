@@ -1,4 +1,4 @@
-#include "converter.h"
+#include "colortable.h"
 
 static int32_t	rgba_color_index(t_rgba *color_table, t_rgba color, unsigned char color_count)
 {
@@ -48,13 +48,13 @@ void	print_xpm_data(unsigned char **pixel_data, t_pngmdata mdata, unsigned char 
 	}
 }
 
-uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata, unsigned char bytes_pp)
+uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata)
 {
 	uint32_t		y;
 	uint32_t		x;
 	unsigned char	*scanline;
 	t_rgba			color;
-	t_rgba			color_table[MAX_COLORS] = {0};
+	t_rgba			color_table[256] = {0}; //placeholder
 	unsigned char	color_count;
 	int32_t			color_index;
 
@@ -66,10 +66,10 @@ uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata, unsigne
 		scanline = pixel_data[y];
 		while (x < mdata.width)
 		{
-			color = (t_rgba){scanline[x * bytes_pp],
-						scanline[(x * bytes_pp) + 1],
-						scanline[(x * bytes_pp) + 2],
-						scanline[(x * bytes_pp) + 3]};
+			color = (t_rgba){scanline[x * mdata.bytes_pp],
+						scanline[(x * mdata.bytes_pp) + 1],
+						scanline[(x * mdata.bytes_pp) + 2],
+						scanline[(x * mdata.bytes_pp) + 3]};
 			color_index = rgba_color_index(color_table, color, color_count);
 			if (color_index == -1)
 			{
@@ -95,15 +95,16 @@ uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata, unsigne
 		i++;
 	}
 	printf("/* pixels */\n");
-	print_xpm_data(pixel_data, mdata, bytes_pp, color_table, color_count);
+	print_xpm_data(pixel_data, mdata, mdata.bytes_pp, color_table, color_count);
     printf("};\n");
 	return (0);
 }
 
-void	convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, unsigned char bytes_pp)
+void	convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, t_colortable *ct)
 {
 	uint32_t	rgba_colorcount;
 
-	rgba_colorcount = count_rgba_colors(pixel_data, mdata, bytes_pp);
+	(void)ct;
+	rgba_colorcount = count_rgba_colors(pixel_data, mdata);
 	(void)rgba_colorcount;
 }
