@@ -39,7 +39,7 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_colortable *ct, t_pngm
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
 			hex_color = generate_hex_color(color);
-			if (!strcmp(hex_color, "000000"))
+			if (!color.a)
 			{
 				free((void *)hex_color);
 				hex_color = strdup("None");
