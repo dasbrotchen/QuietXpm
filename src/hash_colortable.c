@@ -51,7 +51,7 @@ uint32_t	hash_key(const char *key)
 /*
 	Assumption: there is at least 1 NULL key, otherwise infinite loop
 */
-unsigned char	*get_color(const char *key, t_colortable *ct)
+unsigned char	*get_color_identifier(const char *key, t_colortable *ct)
 {
 	uint32_t	hash;
 	uint32_t	index;
@@ -98,7 +98,6 @@ static const char	*new_colortable_entry(t_colortable *ct, const char *key,
 	ct->used_slots++;
 	ct->entries[index].key = key;
 	ct->entries[index].value = value;
-	printf("New color added! key: <%s>\n", key);
 	return (key);
 }
 
@@ -110,7 +109,10 @@ static void	free_colortable_entries(t_colortableentry *entries, uint32_t capacit
 	while (i < capacity)
 	{
 		if (entries[i].key)
+		{
 			free((void *)entries[i].key);
+			free((void *)entries[i].value);
+		}
 		i++;
 	}
 	free(entries);
@@ -132,7 +134,10 @@ static uint32_t	copy_colortable_entries(t_colortable *ct,
 		new_entries[i].key = strdup(ct->entries[i].key);
 		if (!new_entries[i].key)
 			return (QX_MALLOC_ERR); //free all current and new entries here
-		new_entries[i].value = ct->entries[i].value;
+		if (ct->entries[i].value)
+			new_entries[i].value = (unsigned char *)strdup((const char *)ct->entries[i].value);
+		else
+			new_entries[i].value = NULL;
 		i++;
 	}
 	return (0);

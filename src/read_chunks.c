@@ -7,61 +7,56 @@
 	processing.
 */
 static int32_t	process_data_chunk(FILE **file, uint32_t len,
-					t_pngmdata mdata, t_colortable *ct)
+					t_pngmdata mdata, t_colortable *ct, z_stream *strm)
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
 	int32_t			ret;
 	int32_t			ret_parsed;
-	z_stream		strm = {0};
 
-	(void)ct;
-	strm.total_in = 0;
-	strm.avail_in = 0;
-	strm.next_in = Z_NULL;
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-	ret = inflateInit(&strm);
-	if (ret != Z_OK)
-		return (QX_INFLATEINIT_ERR);
-	while (ret != Z_STREAM_END)
+	strm->avail_in = fread(in, 1, len, *file);
+	strm->next_in = in;
+	ret = Z_OK;
+	if (ferror(*file))
 	{
-		strm.avail_in = fread(in, 1, len, *file);
-        if (ferror(*file))
-		{
-            (void)inflateEnd(&strm);
-            return (Z_ERRNO);
-        }
-        if (!strm.avail_in)
-            break;
-        strm.next_in = in;
-		do
-		{
-			strm.avail_out = CHUNK;
-            strm.next_out = out;
-			ret = inflate(&strm, Z_NO_FLUSH);
-            assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
-            switch (ret)
-			{
-				case Z_NEED_DICT:
-					ret = Z_DATA_ERROR;     /* and fall through */
-				case Z_DATA_ERROR:
-				case Z_MEM_ERROR:
-					(void)inflateEnd(&strm);
-					return (ret);
-			}
-			ret_parsed = parse_data_chunk(CHUNK - strm.avail_out, out, mdata, ct);
-			if (ret_parsed)
-			{
-				(void)inflateEnd(&strm);
-				return (ret_parsed);
-			}
-		} while (!strm.avail_out);
+		(void)inflateEnd(strm);
+		return (Z_ERRNO);
 	}
+	if (!strm->avail_in)
+	{
+		fseek(*file, CRC_OFFSET, SEEK_CUR);
+		(void)inflateEnd(strm);
+		return (ret == Z_OK ? Z_STREAM_END : Z_DATA_ERROR);
+	}
+	do
+	{
+		strm->avail_out = CHUNK;
+		strm->next_out = out;
+		ret = inflate(strm, Z_NO_FLUSH);
+		assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+		switch (ret)
+		{
+			case Z_NEED_DICT:
+				ret = Z_DATA_ERROR;     /* and fall through */
+			case Z_DATA_ERROR:
+			case Z_MEM_ERROR:
+				(void)inflateEnd(strm);
+				return (ret);
+		}
+		ret_parsed = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, ct);
+		if (ret_parsed)
+		{
+			(void)inflateEnd(strm);
+			return (ret_parsed);
+		}
+	} while (!strm->avail_out);
 	fseek(*file, CRC_OFFSET, SEEK_CUR);
-	(void)inflateEnd(&strm);
-    return (ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR);
+	if (ret == Z_STREAM_END)
+	{
+		(void)inflateEnd(strm);
+		return (Z_OK);
+	}
+    return (ret);
 }
 
 uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
@@ -105,7 +100,17 @@ uint32_t	read_all_chunks(FILE **file)
 	char		type[5];
 	t_pngmdata	mdata;
 	t_colortable	*ct;
+	z_stream		strm = {0};
 
+	strm.total_in = 0;
+	strm.avail_in = 0;
+	strm.next_in = Z_NULL;
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+	ret = inflateInit(&strm);
+	if (ret != Z_OK)
+		return (QX_INFLATEINIT_ERR);
 	ct = init_color_table();
 	if (!ct)
 		return (QX_MALLOC_ERR);
@@ -119,18 +124,28 @@ uint32_t	read_all_chunks(FILE **file)
 		{
 			ret_mdata = process_metadata_chunk(*file, *len, &mdata);
 			if (ret_mdata)
+			{
+				destroy_color_table(ct);
+				(void)inflateEnd(&strm);
 				return (ret_mdata);
+			}
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len, mdata, ct);
+			ret = process_data_chunk(file, *len, mdata, ct, &strm);
 			if (ret)
+			{
+				destroy_color_table(ct);
+				(void)inflateEnd(&strm);
 				return (ret);
+			}
 		}
 		else if (!strcmp(type, "IEND"))
 			break ;
 		else  
 			fseek(*file, *len + CRC_OFFSET, SEEK_CUR);
 	}
+	assign_color_identifier(ct);
+	destroy_color_table(ct);
 	return (0);
 }
