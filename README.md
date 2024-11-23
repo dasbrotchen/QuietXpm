@@ -2,7 +2,7 @@
 CLI tool to generate XPM files from PNG images. The aim of this repo is to eventually also allow convertion of JPEG and JPG images.
 
 ## Current progression
-As of Nov. 20, 2024, the programme can generate small XPM files with at most 92 different colours. 
+As of Nov. 20, 2024, the programme can generate small XPM files with at most 91 different colours. 
 Original PNG image            |  XPM image converted back to PNG
 :-------------------------:|:-------------------------:
 ![valid](https://github.com/user-attachments/assets/c8d88d29-6ef1-460e-99c4-d45188c5d858)  |  ![reconstructed](https://github.com/user-attachments/assets/f4a10d6a-0ba3-483a-a5ee-f3c5efdfe561)

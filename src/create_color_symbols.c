@@ -48,19 +48,16 @@ void	print_xpm_data(unsigned char **pixel_data, t_pngmdata mdata, unsigned char 
 	}
 }
 
-uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata)
+uint32_t	store_pixel_colors(unsigned char **pixel_data, t_colortable *ct, t_pngmdata mdata)
 {
 	uint32_t		y;
 	uint32_t		x;
 	unsigned char	*scanline;
 	t_rgba			color;
-	t_rgba			color_table[256] = {0}; //placeholder
-	unsigned char	color_count;
-	int32_t			color_index;
+	const char		*hex_color;
 
 	y = 0;
 	x = 0;
-	color_count = 0;
 	while (y < mdata.height)
 	{
 		scanline = pixel_data[y];
@@ -70,33 +67,13 @@ uint32_t	count_rgba_colors(unsigned char **pixel_data, t_pngmdata mdata)
 						scanline[(x * mdata.bytes_pp) + 1],
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
-			color_index = rgba_color_index(color_table, color, color_count);
-			if (color_index == -1)
-			{
-				color_index = color_count++;
-				color_table[color_index] = color;
-			}
+			hex_color = generate_hex_color(color);
+			add_color(ct, hex_color, NULL);
 			x++;
 		}
 		x = 0;
 		y++;
 	}
-	printf("/* XPM */\n");
-    printf("static char *xpm_image[] = {\n");
-	printf("/* columns rows colors chars-per-pixel */\n");
-    printf("\"%d %d %d 1\",\n", mdata.width, mdata.height, color_count);
-	int i = 0;
-	while (i < color_count)
-	{        
-		if (!color_table[i].a) //fully transparent pixel
-			printf("\"%c c None\",\n", '#' + i);
-		else
-			printf("\"%c c #%.2X%.2X%.2X\",\n", '#' + i, color_table[i].r, color_table[i].g, color_table[i].b);
-		i++;
-	}
-	printf("/* pixels */\n");
-	print_xpm_data(pixel_data, mdata, mdata.bytes_pp, color_table, color_count);
-    printf("};\n");
 	return (0);
 }
 
@@ -104,7 +81,7 @@ void	convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, t_colortable *ct)
 {
 	uint32_t	rgba_colorcount;
 
-	(void)ct;
-	rgba_colorcount = count_rgba_colors(pixel_data, mdata);
+	rgba_colorcount = store_pixel_colors(pixel_data, ct, mdata);
+	destroy_color_table(ct);
 	(void)rgba_colorcount;
 }

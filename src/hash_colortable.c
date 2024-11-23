@@ -24,7 +24,10 @@ void	destroy_color_table(t_colortable *ct)
 
 	i = 0;
 	while (i < ct->capacity)
-		free((void *)ct->entries[i++].key);
+	{
+		free((void *)ct->entries[i].key);
+		free((void *)ct->entries[i++].value);
+	}
 	free(ct->entries);
 	free(ct);
 }
@@ -67,9 +70,7 @@ unsigned char	*get_color(const char *key, t_colortable *ct)
 }
 
 /*
-	We will never have to update the value: once a key (pixel identifier) has a
-	value, it remains like so until destruction of the table.
-	Likewise, the table cannot be full here otherwise we are in an infinite loop.
+	The table cannot be full, otherwise there is an infinite loop.
 */
 static const char	*new_colortable_entry(t_colortable *ct, const char *key,
 						unsigned char *value)
@@ -81,18 +82,23 @@ static const char	*new_colortable_entry(t_colortable *ct, const char *key,
 	index = (uint32_t)(hash & (uint32_t)(ct->capacity - 1));
 	while (ct->entries[index].key) //find first available slot
 	{
-		if (!strcmp(key, ct->entries[index].key)) //key already exists, return and exit
+		//if the key already exists, we can just the 'new' key.
+		//we also free the current value, since the new value is also malloc'd.
+		if (!strcmp(key, ct->entries[index].key))
+		{
+			free((void *)key);
+			free((void *)ct->entries[index].value);
+			ct->entries[index].value = value;
 			return (ct->entries[index].key);
+		}
 		index++;
 		if (index == ct->capacity)
 			index = 0;
 	}
-	key = strdup(key);
-	if (!key)
-		return (NULL);
 	ct->used_slots++;
 	ct->entries[index].key = key;
 	ct->entries[index].value = value;
+	printf("New color added! key: <%s>\n", key);
 	return (key);
 }
 
@@ -161,14 +167,10 @@ static uint32_t	expand_colortable(t_colortable *ct)
 }
 
 /*
-	Otherwise return NULL if the value is NULL, or if a malloc broke either
-	while expanding the table or adding a new color to the table.
+	Allow NULL as values, but not as keys.
 */
 const char	*add_color(t_colortable *ct, const char *key, unsigned char *value)
 {
-	assert(value);
-	if (!value)
-		return (NULL);
 	if (ct->used_slots >= ct->capacity * 0.5f && ct->capacity != MAX_COLORS - 1)
 	{
 		if (expand_colortable(ct))

@@ -5,6 +5,7 @@
 # include <stdlib.h>
 # include <string.h>
 # include "converter.h"
+# include <math.h>
 
 # define INITIAL_CAPACITY 16
 /*
@@ -15,9 +16,11 @@
  * Reference: https://github.com/catb0t/fnv-hash/blob/master/fnv.h
 */
 # define FNV32_OFFSET_BASIS ((uint32_t)0x811c9dc5)
+# define MAX_NCHAR 92
+# define MIN_CHAR_COLOR_ID 35
 
 /*
-	This hash table inmplementation is not really portable. I want to
+	This hash table implementation is not really portable. I want to
 	use it only to store colours. Thus, the value will always be 
 	the hexadecimal version of the RGB(A) pixel colour.
 */
@@ -38,5 +41,8 @@ typedef struct s_colortable
 }	t_colortable;
 
 t_colortable	*init_color_table(void);
+const char		*add_color(t_colortable *ct, const char *key, unsigned char *value);
+const char		*generate_hex_color(t_rgba color);
+void			destroy_color_table(t_colortable *ct);
 
 #endif
