@@ -82,7 +82,7 @@ static const char	*new_colortable_entry(t_colortable *ct, const char *key,
 	index = (uint32_t)(hash & (uint32_t)(ct->capacity - 1));
 	while (ct->entries[index].key) //find first available slot
 	{
-		//if the key already exists, we can just the 'new' key.
+		//if the key already exists, we can just free the 'new' key.
 		//we also free the current value, since the new value is also malloc'd.
 		if (!strcmp(key, ct->entries[index].key))
 		{

@@ -149,23 +149,16 @@ static uint32_t	apply_sub_filter(unsigned char *scanline,
 	return (0);
 }
 
-/*
-	written is CHUNK - strm.avail_out, i.e. the number of bytes written to the
-	buffer 'out'.
-*/
-uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
-				t_pngmdata mdata, t_colortable *ct)
+uint32_t	parse_data_chunk(unsigned char *out,
+				t_pngmdata mdata, t_colortable *ct,
+				t_pixel_action pix_action)
 {
-	(void)written;
 	unsigned char	filter_type;
 	uint32_t		i;
-	uint32_t		j;
 	unsigned char	**pixel_data;
 
 	pixel_data = (unsigned char **)malloc(sizeof(unsigned char *) * (mdata.height + 1));
 	i = 0;
-	j = 0;
-	(void)j;
 	while (i < mdata.height)
 	{
 		filter_type = *out++;
@@ -186,11 +179,10 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 		i++;
 	}
 	pixel_data[mdata.height] = NULL;
-	convert_xpm(pixel_data, mdata, ct);
+	pix_action(pixel_data, mdata, ct);//store_pixel_colors or print_pixels
 	i = 0;
 	while (pixel_data[i])
 		free(pixel_data[i++]);
 	free(pixel_data);
 	return (0);
 }
-

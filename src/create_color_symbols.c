@@ -12,14 +12,14 @@ uint32_t	assign_color_identifier(t_colortable *ct)
 		if (ct->entries[i].key)
 		{
 			ct->entries[i].value = generate_color_identifier(i, chars_pp);
-			printf("pixel info: KEY=<%s>, VALUE=<%s>\n", ct->entries[i].key, ct->entries[i].value);
+			printf("new entry => <%s>, <%s>\n", ct->entries[i].key, ct->entries[i].value);
 		}
 		i++;
 	}
 	return (0);
 }
 
-uint32_t	store_pixel_colors(unsigned char **pixel_data, t_colortable *ct, t_pngmdata mdata)
+uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata, t_colortable *ct)
 {
 	uint32_t		y;
 	uint32_t		x;
@@ -53,8 +53,7 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_colortable *ct, t_pngm
 	return (0);
 }
 
-/*
-uint32_t	print_pixels(unsigned char **pixel_data, t_colortable *ct, t_pngmdata mdata)
+uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata, t_colortable *ct)
 {
 	uint32_t		y;
 	uint32_t		x;
@@ -74,7 +73,10 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_colortable *ct, t_pngmdata m
 						scanline[(x * mdata.bytes_pp) + 1],
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
-			hex_color = generate_hex_color(color);
+			if (color.a)
+				hex_color = generate_hex_color(color);
+			else
+				hex_color = strdup("None");
 			printf("%s", get_color_identifier(hex_color, ct));
 			free((void *)hex_color);
 			x++;
@@ -86,11 +88,6 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_colortable *ct, t_pngmdata m
 		else
 			printf("\"\n");
 	}
+	printf("};");
 	return (0);
-}
-*/
-
-void	convert_xpm(unsigned char **pixel_data, t_pngmdata mdata, t_colortable *ct)
-{
-	store_pixel_colors(pixel_data, ct, mdata);
 }
