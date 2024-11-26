@@ -8,7 +8,7 @@
 */
 static int32_t	process_data_chunk(FILE **file, uint32_t len,
 					t_pngmdata mdata, t_colortable *ct, z_stream *strm,
-					t_pixel_action pix_action)
+					t_pixel_action pix_action, unsigned char **pixel_data)
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
@@ -44,7 +44,7 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 				(void)inflateEnd(strm);
 				return (ret);
 		}
-		ret_parsed = parse_data_chunk(out, mdata, ct, pix_action);
+		ret_parsed = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, ct, pix_action, pixel_data);
 		if (ret_parsed)
 		{
 			(void)inflateEnd(strm);
@@ -90,17 +90,19 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 	else if (mdata->color_type == 6)
 		mdata->channels = 4;
 	mdata->bytes_pp = (mdata->bit_depth * mdata->channels) / 8;
+	printf("height: %u, bytes per pixel: %d, bit_depth: %d, channels: %d\n", mdata->height, mdata->bytes_pp, mdata->bit_depth, mdata->channels);
 	return (0);
 }
 
 uint32_t	read_all_chunks(FILE **file, t_colortable *ct,
-				t_pixel_action pix_action)
+				t_pixel_action pix_action, t_pngmdata *mdata)
 {
+	unsigned char **pixel_data;
 	uint32_t	len[1];
 	uint32_t	ret;
 	uint32_t	ret_mdata;
+	uint32_t	i;
 	char		type[5];
-	t_pngmdata	mdata;
 	z_stream		strm = {0};
 
 	strm.total_in = 0;
@@ -109,6 +111,7 @@ uint32_t	read_all_chunks(FILE **file, t_colortable *ct,
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
+	pixel_data = NULL;
 	ret = inflateInit(&strm);
 	if (ret != Z_OK)
 		return (QX_INFLATEINIT_ERR);
@@ -120,20 +123,24 @@ uint32_t	read_all_chunks(FILE **file, t_colortable *ct,
 		type[4] = 0;
 		if (!strcmp(type, "IHDR"))
 		{
-			ret_mdata = process_metadata_chunk(*file, *len, &mdata);
+			ret_mdata = process_metadata_chunk(*file, *len, mdata);
 			if (ret_mdata)
 			{
-				destroy_color_table(ct);
 				(void)inflateEnd(&strm);
 				return (ret_mdata);
+			}
+			pixel_data = calloc(mdata->height + 1, sizeof(unsigned char **));
+			if (!pixel_data)
+			{
+				(void)inflateEnd(&strm);
+				return (QX_MALLOC_ERR);
 			}
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len, mdata, ct, &strm, pix_action);
+			ret = process_data_chunk(file, *len, *mdata, ct, &strm, pix_action, pixel_data);
 			if (ret)
 			{
-				destroy_color_table(ct);
 				(void)inflateEnd(&strm);
 				return (ret);
 			}
@@ -143,5 +150,9 @@ uint32_t	read_all_chunks(FILE **file, t_colortable *ct,
 		else  
 			fseek(*file, *len + CRC_OFFSET, SEEK_CUR);
 	}
+	i = 0;
+	while (pixel_data[i])
+		free(pixel_data[i++]);
+	free(pixel_data);
 	return (0);
 }

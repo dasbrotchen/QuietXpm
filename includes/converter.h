@@ -55,18 +55,26 @@ typedef struct s_rgb
 	unsigned char	b;
 }	t_rgb;
 
+typedef struct s_bytepositions
+{
+	uint32_t	written;
+	uint32_t	decoded;
+	uint32_t	left_overs;
+}	t_bytepositions;
+
 struct s_colortable;
 typedef uint32_t	(*t_pixel_action)(unsigned char **pixel_data,
-						t_pngmdata mdata, struct s_colortable *ct);
+						t_pngmdata mdata, struct s_colortable *ct, uint32_t written);
 
 uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
-				struct s_colortable *ct);
+				struct s_colortable *ct, uint32_t written);
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
-				struct s_colortable *ct);
-uint32_t	parse_data_chunk(unsigned char *out, t_pngmdata mdata,
-				struct s_colortable *ct, t_pixel_action pix_action);
+				struct s_colortable *ct, uint32_t written);
+void		print_color_mapping(struct s_colortable *ct);
+uint32_t	parse_data_chunk(uint32_t written, unsigned char *out, t_pngmdata mdata,
+				struct s_colortable *ct, t_pixel_action pix_action, unsigned char **pixel_data);
 uint32_t	read_all_chunks(FILE **file, struct s_colortable *ct,
-				t_pixel_action pix_action);
+				t_pixel_action pix_action, t_pngmdata *mdata);
 uint32_t	open_file(const char *filename, FILE **file);
 void		qx_error(uint32_t err_code);
 
