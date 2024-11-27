@@ -55,29 +55,26 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 }
 
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
-				t_colortable *ct, uint32_t written)
+				t_colortable *ct)
 {
 	uint32_t		y;
 	uint32_t		x;
-	uint32_t		current_byte;
 	unsigned char	*scanline;
 	t_rgba			color;
 	const char		*hex_color;
 
 	y = 0;
 	x = 0;
-	current_byte = 0;
-	while (y < mdata.height && current_byte < written)
+	while (y < mdata.height)
 	{
 		scanline = pixel_data[y];
 		printf("\"");
-		while (x < mdata.width && current_byte < written)
+		while (x < mdata.width)
 		{
 			color = (t_rgba){scanline[x * mdata.bytes_pp],
 						scanline[(x * mdata.bytes_pp) + 1],
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
-			current_byte += 4;//TODO: check if full pixel in scanline
 			if (color.a)
 				hex_color = generate_hex_color(color);
 			else

@@ -3,8 +3,10 @@
 int	main(int ac, char **argv)
 {
 	FILE			*f;
+	unsigned char	**pixel_data;
 	uint32_t		ret;
 	uint32_t		ret_reader;
+	uint32_t		i;
 	t_colortable	*ct;
 	t_pngmdata		mdata;
 
@@ -13,6 +15,7 @@ int	main(int ac, char **argv)
 		qx_error(QX_INVALID_ARG);
 		return (1);
 	}
+	pixel_data = NULL;
 	f = NULL;
 	ct = init_color_table();
 	if (!ct)
@@ -27,7 +30,7 @@ int	main(int ac, char **argv)
 		qx_error(ret);
 		return (1);
 	}
-	ret_reader = read_all_chunks(&f, ct, store_pixel_colors, &mdata);
+	ret_reader = read_all_chunks(&f, ct, store_pixel_colors, &mdata, &pixel_data);
 	if (ret_reader)
 	{
 		destroy_color_table(ct);
@@ -37,8 +40,9 @@ int	main(int ac, char **argv)
 	}
 	printf("\"%u %u %u %d\",\n", mdata.width, mdata.height, ct->used_slots, get_chars_pp(ct->used_slots));
 	fclose(f);
-	/*
 	assign_color_identifier(ct);
+	print_pixels(pixel_data, mdata, ct);
+	/*
 	ret = open_file(argv[1], &f);
 	if (ret)
 	{
@@ -55,6 +59,10 @@ int	main(int ac, char **argv)
 		return (1);
 	}
 	*/
+	i = 0;
+	while (pixel_data[i])
+		free(pixel_data[i++]);
+	free(pixel_data);
 	destroy_color_table(ct);
 	fclose(f);
 	return (0);
