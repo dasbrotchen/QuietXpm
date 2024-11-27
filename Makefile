@@ -11,7 +11,8 @@ SRCS = main.c \
 	   parse_data_chunk.c \
 	   create_color_symbols.c \
 	   hash_colortable.c \
-	   construct_colortable.c
+	   construct_colortable.c \
+	   free_utils.c
 
 INC = converter.h
 

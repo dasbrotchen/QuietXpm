@@ -188,8 +188,7 @@ static uint32_t	apply_sub_filter(unsigned char *scanline,
 }
 
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
-				t_pngmdata mdata, t_colortable *ct,
-				t_pixel_action pix_action, unsigned char **pixel_data)
+				t_pngmdata mdata, unsigned char **pixel_data)
 {
 	static uint32_t			left_in_scanline = 0;
 	static unsigned char	last_filter_type = 0;
@@ -218,10 +217,6 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 		}
 		if (bytepos.decoded == bytepos.written)
 			break ;
-		if (!bytepos.left_overs) //if this is true, i was increased last time so we can malloc
-			pixel_data[i] = malloc(sizeof(char) * (mdata.width * mdata.bytes_pp));
-		if (!pixel_data[i])
-			return (QX_MALLOC_ERR);
 		if (!filter_type)
 			left_in_scanline = apply_no_filter(pixel_data[i], mdata, out, &bytepos);
 		else if (filter_type == 1)
@@ -239,6 +234,5 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 		if (!left_in_scanline)
 			i++; //only increase the scanline count if we're done with it 
 	}
-	pix_action(pixel_data, mdata, ct, bytepos.written);//store_pixel_colors or print_pixels
 	return (0);
 }
