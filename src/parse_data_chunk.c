@@ -7,24 +7,15 @@ static uint32_t	apply_no_filter(unsigned char *scanline,
 	uint32_t		j;
 
 	if (!bytepos->left_overs)
-	{
-		j = mdata.bytes_pp;
-		scanline[0] = out[0];
-		scanline[1] = out[1];
-		scanline[2] = out[2];
-		scanline[3] = out[3];
-		bytepos->decoded += 4;
-	}
+		j = 0;
 	else
-		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs; //pick up from where we stopped decoding in the last chunk
+		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs;
 	while (j < mdata.width * mdata.bytes_pp && bytepos->decoded < bytepos->written)
 	{
 		scanline[j] = out[j];
 		bytepos->decoded += 1;
 		j++;
 	}
-	if (bytepos->decoded == bytepos->written)
-		printf("remaining in scanline: %u\n", (mdata.width * mdata.bytes_pp) - j);
 	return ((mdata.width * mdata.bytes_pp) - j);
 }
 
@@ -35,16 +26,9 @@ static uint32_t	apply_up_filter(unsigned char **pixel_data, t_pngmdata mdata,
 	unsigned char	above;
 
 	if (!bytepos->left_overs)
-	{
-		j = mdata.bytes_pp;
-		pixel_data[height][0] = out[0];
-		pixel_data[height][1] = out[1];
-		pixel_data[height][2] = out[2];
-		pixel_data[height][3] = out[3];
-		bytepos->decoded += 4;
-	}
+		j = 0;
 	else
-		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs; //pick up from where we stopped decoding in the last chunk
+		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs;
 	if (!height)
 		above = 0;
 	while (j < mdata.width * mdata.bytes_pp && bytepos->decoded < bytepos->written)
@@ -63,6 +47,7 @@ static uint32_t	apply_average_filter(unsigned char **pixel_data,
 {
 	uint32_t		j;
 	double			avg;
+	unsigned char	left;
 	unsigned char	*scanline_above;
 	unsigned char	*scanline;
 
@@ -72,22 +57,19 @@ static uint32_t	apply_average_filter(unsigned char **pixel_data,
 	else
 		scanline_above = pixel_data[height - 1];
 	if (!bytepos->left_overs)
-	{
-		j = mdata.bytes_pp;
-		pixel_data[height][0] = out[0];
-		pixel_data[height][1] = out[1];
-		pixel_data[height][2] = out[2];
-		pixel_data[height][3] = out[3];
-		bytepos->decoded += 4;
-	}
+		j = 0;
 	else
-		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs; //pick up from where we stopped decoding in the last chunk
+		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs;
 	while (j < mdata.width * mdata.bytes_pp && bytepos->decoded < bytepos->written)
 	{
-		if (scanline_above)
-			avg = floor((scanline[j - mdata.bytes_pp] + scanline_above[j]) / 2);
+		if (j >= mdata.bytes_pp)
+			left = scanline[j - mdata.bytes_pp];
 		else
-			avg = floor((scanline[j - mdata.bytes_pp]) / 2);
+			left = 0;
+		if (scanline_above)
+			avg = floor((left + scanline_above[j]) / 2);
+		else
+			avg = floor(left / 2);
 		scanline[j] = ((unsigned char)(out[j] + avg) % 256); 
 		bytepos->decoded += 1;
 		j++;
@@ -95,6 +77,23 @@ static uint32_t	apply_average_filter(unsigned char **pixel_data,
 	return ((mdata.width * mdata.bytes_pp) - j);
 }
 
+static unsigned char paeth_predictor(unsigned char left,
+                                     unsigned char above, 
+                                     unsigned char upper_left)
+{
+    int32_t predictor = left + above - upper_left;
+    int32_t pa = abs(predictor - left);
+    int32_t pb = abs(predictor - above);
+    int32_t pc = abs(predictor - upper_left);
+
+    if (pa <= pb && pa <= pc)
+        return left;
+    else if (pb <= pc)
+        return above;
+    else
+        return upper_left;
+}
+/*
 static unsigned char	paeth_predictor(unsigned char left,
 				unsigned char above, unsigned char upper_left)
 {
@@ -110,7 +109,7 @@ static unsigned char	paeth_predictor(unsigned char left,
 		  return (above);
 	else
 		return (upper_left);
-}
+}*/
 
 /*
 	From the official PNG documentation:
@@ -129,32 +128,40 @@ static uint32_t	apply_paeth_filter(unsigned char **pixel_data, t_pngmdata mdata,
 	uint32_t		j;
 	unsigned char	above;
 	unsigned char	upper_left;
+	unsigned char	left;
 
 	if (!bytepos->left_overs)
-	{
-		j = mdata.bytes_pp;
-		pixel_data[height][0] = out[0];
-		pixel_data[height][1] = out[1];
-		pixel_data[height][2] = out[2];
-		pixel_data[height][3] = out[3];
-		bytepos->decoded += 4;
-	}
+		j = 0;
 	else
-		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs; //pick up from where we stopped decoding in the last chunk
-	if (!height)
-	{
-		above = 0;
-		upper_left = 0;
-	}
+		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs;
 	while (j < mdata.width * mdata.bytes_pp && bytepos->decoded < bytepos->written)
 	{
-		if (height)
+		if (!height && j>= mdata.bytes_pp)
+		{
+			above = 0;
+			upper_left = 0;
+			left = pixel_data[height][j - mdata.bytes_pp];
+		}
+		else if (!height)
+		{
+			above = 0;
+			upper_left = 0;
+			left = 0;
+		}
+		else if (height && j >= mdata.bytes_pp)
 		{
 			above = pixel_data[height - 1][j];
 			upper_left = pixel_data[height - 1][j - mdata.bytes_pp];
+			left = pixel_data[height][j - mdata.bytes_pp];
+		}
+		else if (height)
+		{
+			above = pixel_data[height - 1][j];
+			upper_left = 0;
+			left = 0;
 		}
 		pixel_data[height][j] = ((unsigned char)(out[j]
-			+ paeth_predictor(pixel_data[height][j - mdata.bytes_pp], above, upper_left)) % 256);
+			+ paeth_predictor(left, above, upper_left)) % 256);
 		bytepos->decoded += 1;
 		j++;
 	}
@@ -177,7 +184,7 @@ static uint32_t	apply_sub_filter(unsigned char *scanline,
 		bytepos->decoded += 4;
 	}
 	else
-		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs; //pick up from where we stopped decoding in the last chunk
+		j = (mdata.width * mdata.bytes_pp) - bytepos->left_overs;
 	while (j < mdata.width * mdata.bytes_pp && bytepos->decoded < bytepos->written)
 	{
 		scanline[j] = ((unsigned char)(out[j] + scanline[j - mdata.bytes_pp]) % 256);
@@ -199,19 +206,19 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 	bytepos.decoded = 0;
 	bytepos.written = written;
 	bytepos.left_overs = left_in_scanline;
-	printf("PARSING NEW DATA CHUNK. Written to that chunk: %u\n", bytepos.written);
+	//printf("PARSING NEW DATA CHUNK. Written to that chunk: %u\n", bytepos.written);
 	while (bytepos.decoded < bytepos.written)
 	{
 		bytepos.left_overs = left_in_scanline;
 		if (bytepos.left_overs)
 		{
 			filter_type = last_filter_type;
-			printf("filter type from last scanline: %d, %u left in scanline\n", filter_type, bytepos.left_overs);
+			//printf("filter type from last scanline: %d, %u left in scanline\n", filter_type, bytepos.left_overs);
 		}
 		else
 		{
 			filter_type = *out++;
-			printf("filter type: %d, nothing left in scanline\n", filter_type);
+			//printf("filter type: %d, nothing left in scanline\n", filter_type);
 			bytepos.decoded++;
 			last_filter_type = filter_type;
 		}
