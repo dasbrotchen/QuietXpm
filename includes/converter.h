@@ -62,6 +62,13 @@ typedef struct s_bytepositions
 	uint32_t	left_overs;
 }	t_bytepositions;
 
+typedef struct s_chunk_state
+{
+    uint32_t		left_in_scanline;
+    unsigned char	last_filter_type;
+    uint32_t		current_scanline;
+}	t_chunk_state;
+
 struct s_colortable;
 
 uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
@@ -70,7 +77,7 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 				struct s_colortable *ct);
 void		print_color_mapping(struct s_colortable *ct);
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out, t_pngmdata mdata,
-				unsigned char **pixel_data);
+				unsigned char **pixel_data, t_chunk_state *chunk_state);
 uint32_t	read_all_chunks(FILE **file,
 				t_pngmdata *mdata, unsigned char ***pixel_data);
 uint32_t	open_file(const char *filename, FILE **file);

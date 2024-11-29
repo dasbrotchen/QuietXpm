@@ -126,10 +126,12 @@ static uint32_t	apply_paeth_filter(unsigned char **pixel_data, t_pngmdata mdata,
 				 unsigned char *out, uint32_t height, t_bytepositions *bytepos)
 {
 	uint32_t		j;
+	uint32_t		outj;
 	unsigned char	above;
 	unsigned char	upper_left;
 	unsigned char	left;
 
+	outj = 0;
 	if (!bytepos->left_overs)
 		j = 0;
 	else
@@ -160,10 +162,15 @@ static uint32_t	apply_paeth_filter(unsigned char **pixel_data, t_pngmdata mdata,
 			upper_left = 0;
 			left = 0;
 		}
-		pixel_data[height][j] = ((unsigned char)(out[j]
+		pixel_data[height][j] = ((unsigned char)(out[outj]
 			+ paeth_predictor(left, above, upper_left)) % 256);
+		/*
+		if (height == 35)
+			printf("Scanline 35 byte at index %u: %d, with raw byte: %d, LAU: (%d,%d,%d), manual AU: (%d, %d)\n", j, pixel_data[height][j], out[outj], left, above, upper_left, pixel_data[height - 1][j], pixel_data[height - 1][j - mdata.bytes_pp]);
+		*/
 		bytepos->decoded += 1;
 		j++;
+		outj++;
 	}
 	return ((mdata.width * mdata.bytes_pp) - j);
 }
@@ -194,22 +201,41 @@ static uint32_t	apply_sub_filter(unsigned char *scanline,
 	return ((mdata.width * mdata.bytes_pp) - j);
 }
 
-uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
-				t_pngmdata mdata, unsigned char **pixel_data)
+void hex_dump_inflated(unsigned char *inflated_data, uint32_t data_length, int dumpcount) 
 {
-	static uint32_t			left_in_scanline = 0;
+    FILE *dump_file = fopen("inflated_dump.hex", !dumpcount ? "w" : "a");
+    if (!dump_file) return;
+
+    fprintf(dump_file, "\n--- NEW CHUNK ---\n");  // Separator between chunks
+
+    for (size_t i = 0; i < data_length; i++) {
+        fprintf(dump_file, "%02X ", inflated_data[i]);
+        
+        if ((i + 1) % 16 == 0) 
+            fprintf(dump_file, "\n");
+    }
+    
+    fclose(dump_file);
+}
+
+uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
+				t_pngmdata mdata, unsigned char **pixel_data, t_chunk_state *chunk_state)
+{
 	static unsigned char	last_filter_type = 0;
 	static uint32_t			i = 0;
+	static int				inflate_count = 0;
 	unsigned char			filter_type;
 	t_bytepositions			bytepos;
 
 	bytepos.decoded = 0;
 	bytepos.written = written;
-	bytepos.left_overs = left_in_scanline;
-	//printf("PARSING NEW DATA CHUNK. Written to that chunk: %u\n", bytepos.written);
+	bytepos.left_overs = chunk_state->left_in_scanline;
+	//hex_dump_inflated(out, written, inflate_count);
+	inflate_count++;
+	(void)inflate_count;
 	while (bytepos.decoded < bytepos.written)
 	{
-		bytepos.left_overs = left_in_scanline;
+		bytepos.left_overs = chunk_state->left_in_scanline;
 		if (bytepos.left_overs)
 		{
 			filter_type = last_filter_type;
@@ -225,20 +251,20 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 		if (bytepos.decoded == bytepos.written)
 			break ;
 		if (!filter_type)
-			left_in_scanline = apply_no_filter(pixel_data[i], mdata, out, &bytepos);
+			chunk_state->left_in_scanline = apply_no_filter(pixel_data[i], mdata, out, &bytepos);
 		else if (filter_type == 1)
-			left_in_scanline = apply_sub_filter(pixel_data[i], mdata, out, &bytepos);
+			chunk_state->left_in_scanline = apply_sub_filter(pixel_data[i], mdata, out, &bytepos);
 		else if (filter_type == 2)
-			left_in_scanline = apply_up_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_up_filter(pixel_data, mdata, out, i, &bytepos);
 		else if (filter_type == 3)
-			left_in_scanline = apply_average_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_average_filter(pixel_data, mdata, out, i, &bytepos);
 		else if (filter_type == 4)
-			left_in_scanline = apply_paeth_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_paeth_filter(pixel_data, mdata, out, i, &bytepos);
 		if (bytepos.left_overs)
 			out += bytepos.left_overs;
 		else
-			out += (mdata.width * mdata.bytes_pp);
-		if (!left_in_scanline)
+			out += (mdata.width * mdata.bytes_pp) - chunk_state->left_in_scanline;
+		if (!chunk_state->left_in_scanline)
 			i++; //only increase the scanline count if we're done with it 
 	}
 	return (0);

@@ -66,7 +66,6 @@ unsigned char	*get_color_identifier(const char *key, t_colortable *ct)
 		if (index == ct->capacity)
 			index = 0;
 	}
-	printf("did not find color <%s>\n", key);
 	return (NULL);
 }
 

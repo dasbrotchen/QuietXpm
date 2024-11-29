@@ -8,7 +8,7 @@
 */
 static int32_t	process_data_chunk(FILE **file, uint32_t len,
 					t_pngmdata mdata, z_stream *strm,
-					unsigned char **pixel_data)
+					unsigned char **pixel_data, t_chunk_state *chunk_state)
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
@@ -44,7 +44,7 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 				(void)inflateEnd(strm);
 				return (ret);
 		}
-		ret_parsed = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data);
+		ret_parsed = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
 		if (ret_parsed)
 		{
 			(void)inflateEnd(strm);
@@ -101,8 +101,12 @@ uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_
 	uint32_t		i;
 	char			type[5];
 	z_stream		strm = {0};
+	t_chunk_state	chunk_state;
 
 	i = 0;
+	chunk_state.left_in_scanline = 0;
+	chunk_state.last_filter_type = 0;
+	chunk_state.current_scanline = 0;
 	strm.total_in = 0;
 	strm.avail_in = 0;
 	strm.next_in = Z_NULL;
@@ -146,7 +150,7 @@ uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len, *mdata, &strm, *pixel_data);
+			ret = process_data_chunk(file, *len, *mdata, &strm, *pixel_data, &chunk_state);
 			if (ret)
 			{
 				(void)inflateEnd(&strm);

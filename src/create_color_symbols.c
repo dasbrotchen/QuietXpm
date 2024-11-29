@@ -38,10 +38,10 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 						scanline[(x * mdata.bytes_pp) + 1],
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
-			if (color.a)
-				hex_color = generate_hex_color(color);
-			else
+			if (!color.a)
 				hex_color = strdup("None");
+			else
+				hex_color = generate_hex_color(color);
 			add_color(ct, hex_color, NULL);
 			x++;
 		}
@@ -72,14 +72,11 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 						scanline[(x * mdata.bytes_pp) + 1],
 						scanline[(x * mdata.bytes_pp) + 2],
 						scanline[(x * mdata.bytes_pp) + 3]};
-			if (color.a)
-				hex_color = generate_hex_color(color);
-			else
+			if (!color.a)
 				hex_color = strdup("None");
-			if (!get_color_identifier(hex_color, ct))
-				printf("%s", get_color_identifier("None", ct));
-			else//HACK PLEASE FIX THIS
-				printf("%s", get_color_identifier(hex_color, ct));
+			else
+				hex_color = generate_hex_color(color);
+			printf("%s", get_color_identifier(hex_color, ct));
 			free((void *)hex_color);
 			x++;
 		}
