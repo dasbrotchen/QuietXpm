@@ -18,6 +18,19 @@ uint32_t	assign_color_identifier(t_colortable *ct)
 	return (0);
 }
 
+static t_rgba	assemble_color_channels(unsigned char *scanline, t_pngmdata mdata,
+			uint32_t curr_pixel)
+{
+	t_rgba		color;
+
+	color.r = scanline[curr_pixel];
+	color.g = scanline[curr_pixel + 1];
+	color.b = scanline[curr_pixel + 2];
+	if (mdata.bytes_pp == 4)
+		color.a = scanline[curr_pixel + 3];
+	return (color);
+}
+
 uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 				t_colortable *ct)
 {
@@ -34,11 +47,8 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 		scanline = pixel_data[y];
 		while (x < mdata.width)
 		{
-			color = (t_rgba){scanline[x * mdata.bytes_pp],
-						scanline[(x * mdata.bytes_pp) + 1],
-						scanline[(x * mdata.bytes_pp) + 2],
-						scanline[(x * mdata.bytes_pp) + 3]};
-			if (!color.a)
+			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
+			if (!color.a && mdata.bytes_pp == 4)
 				hex_color = strdup("None");
 			else
 				hex_color = generate_hex_color(color);
@@ -68,11 +78,8 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 		printf("\"");
 		while (x < mdata.width)
 		{
-			color = (t_rgba){scanline[x * mdata.bytes_pp],
-						scanline[(x * mdata.bytes_pp) + 1],
-						scanline[(x * mdata.bytes_pp) + 2],
-						scanline[(x * mdata.bytes_pp) + 3]};
-			if (!color.a)
+			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
+			if (!color.a && mdata.bytes_pp == 4)
 				hex_color = strdup("None");
 			else
 				hex_color = generate_hex_color(color);

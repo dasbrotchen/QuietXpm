@@ -193,8 +193,6 @@ static uint32_t	apply_sub_filter(unsigned char *scanline,
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 				t_pngmdata mdata, unsigned char **pixel_data, t_chunk_state *chunk_state)
 {
-	static unsigned char	last_filter_type = 0;
-	static uint32_t			i = 0;
 	unsigned char			filter_type;
 	t_bytepositions			bytepos;
 
@@ -205,12 +203,12 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 	{
 		bytepos.left_overs = chunk_state->left_in_scanline;
 		if (bytepos.left_overs)
-			filter_type = last_filter_type;
+			filter_type = chunk_state->last_filter_type;
 		else
 		{
 			filter_type = *out++;
 			bytepos.decoded++;
-			last_filter_type = filter_type;
+			chunk_state->last_filter_type = filter_type;
 		}
 		if (bytepos.decoded == bytepos.written)
 		{
@@ -218,21 +216,21 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 			return (0);
 		}
 		if (!filter_type)
-			chunk_state->left_in_scanline = apply_no_filter(pixel_data[i], mdata, out, &bytepos);
+			chunk_state->left_in_scanline = apply_no_filter(pixel_data[chunk_state->current_scanline], mdata, out, &bytepos);
 		else if (filter_type == 1)
-			chunk_state->left_in_scanline = apply_sub_filter(pixel_data[i], mdata, out, &bytepos);
+			chunk_state->left_in_scanline = apply_sub_filter(pixel_data[chunk_state->current_scanline], mdata, out, &bytepos);
 		else if (filter_type == 2)
-			chunk_state->left_in_scanline = apply_up_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_up_filter(pixel_data, mdata, out, chunk_state->current_scanline, &bytepos);
 		else if (filter_type == 3)
-			chunk_state->left_in_scanline = apply_average_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_average_filter(pixel_data, mdata, out, chunk_state->current_scanline, &bytepos);
 		else if (filter_type == 4)
-			chunk_state->left_in_scanline = apply_paeth_filter(pixel_data, mdata, out, i, &bytepos);
+			chunk_state->left_in_scanline = apply_paeth_filter(pixel_data, mdata, out, chunk_state->current_scanline, &bytepos);
 		if (bytepos.left_overs)
 			out += bytepos.left_overs;
 		else
 			out += (mdata.width * mdata.bytes_pp) - chunk_state->left_in_scanline;
 		if (!chunk_state->left_in_scanline)
-			i++; //only increase the scanline count if we're done with it 
+			chunk_state->current_scanline += 1; //only increase the scanline count if we're done with it 
 	}
 	return (0);
 }
