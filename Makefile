@@ -14,9 +14,17 @@ SRCS = main.c \
 	   fill_colortable.c \
 	   free_utils.c
 
-INC = converter.h
+ZLIB_URL = https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz
+ZLIB_DIR = zlib-1.3.1
+ZLIB_BUILD_DIR = $(OBJ_D)zlib_build
+ZLIB = $(ZLIB_BUILD_DIR)/libz.a
+ZLIB_CFLAGS = -I$(ZLIB_BUILD_DIR)/include
+ZLIB_LDFLAGS = -L$(ZLIB_BUILD_DIR) -lz
 
-Z_LIB_PATH = /opt/homebrew/Cellar/zlib/1.3.1/lib
+CFLAGS += $(ZLIB_CFLAGS)
+
+INC = converter.h \
+	  colortable.h
 
 OBJS = $(SRCS:%.c=$(OBJ_D)%.o)
 
@@ -28,8 +36,16 @@ $(OBJ_D)%.o: $(SRC_D)%.c
 	@mkdir -p $(OBJ_D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(NAME):	$(OBJS)
-	$(CC) $(CFLAGS) -L$(Z_LIB_PATH) -lz -lm $(OBJS) -o $@
+$(NAME):	$(OBJS) $(ZLIB)
+	$(CC) $(CFLAGS) $(OBJS) $(ZLIB_LDFLAGS) -lm -o $@
+
+$(ZLIB):
+	@mkdir -p $(ZLIB_BUILD_DIR)
+	@if [ ! -d "$(ZLIB_DIR)" ]; then \
+		echo "Downloading zlib..."; \
+		curl -L $(ZLIB_URL) | tar xz; \
+	fi
+	@cd $(ZLIB_DIR) && ./configure --static --prefix=$(shell pwd)/$(ZLIB_BUILD_DIR) && make test && make install
 
 DEPS = $(OBJS:.o=.d)
 
@@ -41,8 +57,7 @@ all:
 clean:
 	rm -rf $(OBJ_D)
 
-fclean:
-	rm -rf $(OBJ_D)
+fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
