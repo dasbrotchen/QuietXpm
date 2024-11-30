@@ -73,6 +73,8 @@ struct s_colortable;
 
 uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 				struct s_colortable *ct);
+t_rgba		assemble_color_channels(unsigned char *scanline, t_pngmdata mdata,
+				uint32_t curr_pixel);
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 				struct s_colortable *ct);
 void		print_color_mapping(struct s_colortable *ct);

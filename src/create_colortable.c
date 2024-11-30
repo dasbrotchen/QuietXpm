@@ -102,25 +102,7 @@ static const char	*new_colortable_entry(t_colortableentry *entries, uint32_t cap
 	return (key);
 }
 
-/*
-static void	free_colortable_entries(t_colortableentry *entries, uint32_t capacity)
-{
-	uint32_t	i;
-
-	i = 0;
-	while (i < capacity)
-	{
-		if (entries[i].key)
-		{
-			free((void *)entries[i].key);
-			free((void *)entries[i].value);
-		}
-		i++;
-	}
-	free(entries);
-}*/
-
-static uint32_t	copy_colortable_entries(t_colortable *ct,
+static uint32_t	re_hash_ct_entries(t_colortable *ct,
 					t_colortableentry *new_entries, uint32_t new_capacity)
 {
 	uint32_t			i;
@@ -137,15 +119,6 @@ static uint32_t	copy_colortable_entries(t_colortable *ct,
 		}
 		new_colortable_entry(new_entries, new_capacity, entry.key, entry.value, NULL);
 		i++;
-		/*
-		new_entries[i].key = strdup(ct->entries[i].key);
-		if (!new_entries[i].key)
-			return (QX_MALLOC_ERR); //free all current and new entries here
-		if (ct->entries[i].value)
-			new_entries[i].value = (unsigned char *)strdup((const char *)ct->entries[i].value);
-		else
-			new_entries[i].value = NULL;
-		*/
 	}
 	return (0);
 }
@@ -167,13 +140,8 @@ static uint32_t	expand_colortable(t_colortable *ct)
 	new_ct_entries = calloc(new_capacity, sizeof(t_colortableentry));
 	if (!new_ct_entries)
 		return (QX_MALLOC_ERR);
-	if (copy_colortable_entries(ct, new_ct_entries, new_capacity))
-	{
-		//free everything here
-		return (QX_MALLOC_ERR);
-	}
+	re_hash_ct_entries(ct, new_ct_entries, new_capacity);
 	free(ct->entries);
-	//free_colortable_entries(ct->entries, ct->capacity);
 	ct->entries = new_ct_entries;
 	ct->capacity = new_capacity;
 	return (0);
