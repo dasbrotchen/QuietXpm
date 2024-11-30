@@ -12,7 +12,11 @@ uint32_t	assign_color_identifier(t_colortable *ct)
 	while (i < ct->capacity)
 	{
 		if (ct->entries[i].key)
+		{
 			ct->entries[i].value = generate_color_identifier(j++, chars_pp);
+			if (!ct->entries[i].value)
+				return (QX_MALLOC_ERR);
+		}
 		i++;
 	}
 	return (0);
@@ -52,6 +56,8 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 				hex_color = strdup("None");
 			else
 				hex_color = generate_hex_color(color);
+			if (!hex_color)
+				return (QX_MALLOC_ERR);
 			add_color(ct, hex_color, NULL);
 			x++;
 		}
@@ -79,10 +85,12 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 		while (x < mdata.width)
 		{
 			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
-			if (!color.a && mdata.bytes_pp == 4)
+			if (!color.a)
 				hex_color = strdup("None");
 			else
 				hex_color = generate_hex_color(color);
+			if (!hex_color)
+				return (QX_MALLOC_ERR);
 			printf("%s", get_color_identifier(hex_color, ct));
 			free((void *)hex_color);
 			x++;

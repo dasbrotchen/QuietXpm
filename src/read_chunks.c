@@ -13,21 +13,16 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
 	int32_t			ret;
-	int32_t			ret_parsed;
 
 	strm->avail_in = fread(in, 1, len, *file);
 	strm->next_in = in;
 	ret = Z_OK;
 	if (ferror(*file))
-	{
-		(void)inflateEnd(strm);
 		return (Z_ERRNO);
-	}
-	if (!strm->avail_in)
+	if (!strm->avail_in) /* fread() fail, or IDAT chunk with len 0 */
 	{
 		fseek(*file, CRC_OFFSET, SEEK_CUR);
-		(void)inflateEnd(strm);
-		return (ret == Z_OK ? Z_STREAM_END : Z_DATA_ERROR);
+		return (Z_ERRNO); /* for now, treat empty IDAT chunk as an error */
 	}
 	do
 	{
@@ -41,22 +36,14 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 				ret = Z_DATA_ERROR;     /* and fall through */
 			case Z_DATA_ERROR:
 			case Z_MEM_ERROR:
-				(void)inflateEnd(strm);
 				return (ret);
 		}
-		ret_parsed = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
-		if (ret_parsed)
-		{
-			(void)inflateEnd(strm);
-			return (ret_parsed);
-		}
+		/* Return value is always 0, this function cannot fail. */
+		parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
 	} while (!strm->avail_out);
 	fseek(*file, CRC_OFFSET, SEEK_CUR);
-	if (ret == Z_STREAM_END)
-	{
-		(void)inflateEnd(strm);
+	if (ret == Z_STREAM_END) /* This should never be true */
 		return (Z_OK);
-	}
     return (ret == Z_OK ? Z_OK : Z_DATA_ERROR);
 }
 
@@ -93,20 +80,37 @@ uint32_t	process_metadata_chunk(FILE *file, uint32_t len, t_pngmdata *mdata)
 	return (0);
 }
 
-uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_data)
+static unsigned char **allocate_pixel_data(t_pngmdata mdata)
 {
-	uint32_t		len[1];
-	uint32_t		ret;
-	uint32_t		ret_mdata;
+	unsigned char	**pixel_data;
 	uint32_t		i;
-	char			type[5];
-	z_stream		strm = {0};
-	t_chunk_state	chunk_state;
 
 	i = 0;
-	chunk_state.left_in_scanline = 0;
-	chunk_state.last_filter_type = 0;
-	chunk_state.current_scanline = 0;
+	pixel_data = calloc(mdata.height + 1, sizeof(unsigned char *));
+	if (!pixel_data)
+		return (NULL);
+	while (i < mdata.height)
+	{
+		pixel_data[i] = calloc(mdata.width * mdata.bytes_pp + 1, sizeof(unsigned char));
+		if (!pixel_data[i])
+		{
+			free_pixel_data(pixel_data);
+			return (NULL);
+		}
+		i++;
+	}
+	return (pixel_data);
+}
+
+uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_data)
+{
+	uint32_t		len;
+	uint32_t		ret;
+	uint32_t		ret_mdata;
+	char			type[5];
+	z_stream		strm = {0};
+	t_chunk_state	chunk_state = {0};
+
 	strm.total_in = 0;
 	strm.avail_in = 0;
 	strm.next_in = Z_NULL;
@@ -118,39 +122,28 @@ uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_
 		return (QX_INFLATEINIT_ERR);
 	while (!feof(*file))
 	{
-		fread(len, 1, 4, *file);
-		*len = __builtin_bswap32(*len);
+		fread(&len, 1, 4, *file);
+		len = __builtin_bswap32(len);
 		fread(type, 1, 4, *file);
 		type[4] = 0;
 		if (!strcmp(type, "IHDR"))
 		{
-			ret_mdata = process_metadata_chunk(*file, *len, mdata);
+			ret_mdata = process_metadata_chunk(*file, len, mdata);
 			if (ret_mdata)
 			{
 				(void)inflateEnd(&strm);
 				return (ret_mdata);
 			}
-			*pixel_data = calloc(mdata->height + 1, sizeof(unsigned char *));
+			*pixel_data = allocate_pixel_data(*mdata);
 			if (!*pixel_data)
 			{
 				(void)inflateEnd(&strm);
 				return (QX_MALLOC_ERR);
 			}
-			while (i < mdata->height)
-			{
-				(*pixel_data)[i] = calloc(mdata->width * mdata->bytes_pp + 1, sizeof(unsigned char));
-				if (!(*pixel_data)[i])
-				{
-					free_pixel_data(*pixel_data);
-					(void)inflateEnd(&strm);
-					return (QX_MALLOC_ERR);
-				}
-				i++;
-			}
 		}
 		else if (!strcmp(type, "IDAT"))
 		{
-			ret = process_data_chunk(file, *len, *mdata, &strm, *pixel_data, &chunk_state);
+			ret = process_data_chunk(file, len, *mdata, &strm, *pixel_data, &chunk_state);
 			if (ret)
 			{
 				(void)inflateEnd(&strm);
@@ -160,7 +153,8 @@ uint32_t	read_all_chunks(FILE **file, t_pngmdata *mdata, unsigned char ***pixel_
 		else if (!strcmp(type, "IEND"))
 			break ;
 		else  
-			fseek(*file, *len + CRC_OFFSET, SEEK_CUR);
+			fseek(*file, len + CRC_OFFSET, SEEK_CUR);
 	}
+	(void)inflateEnd(&strm);
 	return (0);
 }
