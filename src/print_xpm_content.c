@@ -20,7 +20,7 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 	uint32_t		x;
 	unsigned char	*scanline;
 	t_rgba			color;
-	const char		*hex_color;
+	uint32_t		uint_key;
 
 	y = 0;
 	x = 0;
@@ -31,14 +31,8 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 		while (x < mdata.width)
 		{
 			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
-			if (!color.a && mdata.channels == 4)
-				hex_color = strdup("None");
-			else
-				hex_color = generate_hex_color(color);
-			if (!hex_color)
-				return (QX_MALLOC_ERR);
-			printf("%s", get_color_identifier(hex_color, ct));
-			free((void *)hex_color);
+			uint_key = rgba_to_uint(color);
+			printf("%s", get_color_identifier(uint_key, ct));
 			x++;
 		}
 		x = 0;
@@ -59,12 +53,12 @@ void	print_color_mapping(t_colortable *ct)
 	j = 0;
 	while (j < ct->capacity)
 	{
-		if (ct->entries[j].key)
+		if (ct->entries[j].used)
 		{
-			if (!strcmp(ct->entries[j].key, "None"))
-				printf("\"%s c %s\",\n", ct->entries[j].value, ct->entries[j].key);
+			if (!ct->entries[j].key)//black color, possible transparent, not handled yet
+				printf("\"%s c #%06X\",\n", ct->entries[j].value, ct->entries[j].key);
 			else
-				printf("\"%s c #%s\",\n", ct->entries[j].value, ct->entries[j].key);
+				printf("\"%s c #%06X\",\n", ct->entries[j].value, ct->entries[j].key);
 		}
 		j++;
 	}

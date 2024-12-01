@@ -26,8 +26,9 @@
 */
 typedef struct s_colortableentry
 {
-	const char		*key;
+	uint32_t		key;
 	unsigned char	*value;
+	unsigned char	used;
 }	t_colortableentry;
 
 /*
@@ -41,11 +42,11 @@ typedef struct s_colortable
 }	t_colortable;
 
 t_colortable	*init_color_table(void);
-const char		*add_color(t_colortable *ct, const char *key, unsigned char *value);
-const char		*generate_hex_color(t_rgba color);
+uint32_t		rgba_to_uint(t_rgba colour);
+uint32_t		add_color(t_colortable *ct, uint32_t key, unsigned char *value);
 unsigned char	*generate_color_identifier(uint32_t n_color, unsigned char chars_pp);
 uint32_t		assign_color_identifier(t_colortable *ct);
-unsigned char	*get_color_identifier(const char *key, t_colortable *ct);
+unsigned char	*get_color_identifier(uint32_t key, t_colortable *ct);
 unsigned char	get_chars_pp(uint32_t used_slots);
 void			destroy_color_table(t_colortable *ct);
 

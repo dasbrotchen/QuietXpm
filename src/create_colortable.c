@@ -24,24 +24,26 @@ void	destroy_color_table(t_colortable *ct)
 
 	i = 0;
 	while (i < ct->capacity)
-	{
-		free((void *)ct->entries[i].key);
 		free((void *)ct->entries[i++].value);
-	}
 	free(ct->entries);
 	free(ct);
 }
 
-uint32_t	hash_key(const char *key)
+/*
+	The key will always be the unsigned int representation of the RGB channels of each color.
+	Instead of iterating over a string with the hex representation, we instead iterate 
+	over each byte of the key (ALWAYS 4 bytes).
+*/
+uint32_t	hash_key(uint32_t key)
 {
 	uint32_t	hash;
 	uint32_t	i;
 
 	hash = FNV32_OFFSET_BASIS;
 	i = 0;
-	while(key[i])
+	while(i < 4)
 	{
-		hash ^= (uint32_t)(unsigned char)(key[i]);
+		hash ^= (uint32_t)(unsigned char)((key >> (8 * i) & 255));
 		hash *= FNV32_PRIME;
 		i++;
 	}
@@ -49,18 +51,18 @@ uint32_t	hash_key(const char *key)
 }
 
 /*
-	Assumption: there is at least 1 NULL key, otherwise infinite loop
+	Assumption: there is at least 1 unused slot, otherwise infinite loop
 */
-unsigned char	*get_color_identifier(const char *key, t_colortable *ct)
+unsigned char	*get_color_identifier(uint32_t key, t_colortable *ct)
 {
 	uint32_t	hash;
 	uint32_t	index;
 
 	hash = hash_key(key);
 	index = (uint32_t)(hash & (uint32_t)(ct->capacity - 1));
-	while (ct->entries[index].key)
+	while (ct->entries[index].used)
 	{
-		if (!strcmp(key, ct->entries[index].key))
+		if (key == ct->entries[index].key)
 			return (ct->entries[index].value);
 		index++;
 		if (index == ct->capacity)
@@ -72,24 +74,23 @@ unsigned char	*get_color_identifier(const char *key, t_colortable *ct)
 /*
 	The table cannot be full, otherwise there is an infinite loop.
 */
-static const char	*new_colortable_entry(t_colortableentry *entries, uint32_t capacity,
-						const char *key, unsigned char *value, uint32_t *used_slots)
+static void	new_colortable_entry(t_colortableentry *entries, uint32_t capacity,
+						uint32_t key, unsigned char *value, uint32_t *used_slots)
 {
 	uint32_t	hash;
 	uint32_t	index;
 
 	hash = hash_key(key);
 	index = (uint32_t)(hash & (uint32_t)(capacity - 1));
-	while (entries[index].key) //find first available slot
+	while (entries[index].used) //find first available slot
 	{
 		//if the key already exists, we can just free the 'new' key.
 		//we also free the current value, since the new value is also malloc'd.
-		if (!strcmp(key, entries[index].key))
+		if (key == entries[index].key)
 		{
-			free((void *)key);
 			free((void *)entries[index].value);
 			entries[index].value = value;
-			return (entries[index].key);
+			return ;
 		}
 		index++;
 		if (index == capacity)
@@ -99,9 +100,13 @@ static const char	*new_colortable_entry(t_colortableentry *entries, uint32_t cap
 		*used_slots += 1;
 	entries[index].key = key;
 	entries[index].value = value;
-	return (key);
+	entries[index].used = 1;
 }
 
+/*
+	Every time the hash table is expanded, we recompute the hash for each used key since
+	its index depends on the capacity of the color table.
+*/
 static uint32_t	re_hash_ct_entries(t_colortable *ct,
 					t_colortableentry *new_entries, uint32_t new_capacity)
 {
@@ -112,7 +117,7 @@ static uint32_t	re_hash_ct_entries(t_colortable *ct,
 	while (i < ct->capacity)
 	{
 		entry = ct->entries[i];
-		if (!entry.key)
+		if (!entry.used)
 		{
 			i++;
 			continue ;
@@ -150,12 +155,13 @@ static uint32_t	expand_colortable(t_colortable *ct)
 /*
 	Allow NULL as values, but not as keys.
 */
-const char	*add_color(t_colortable *ct, const char *key, unsigned char *value)
+uint32_t	add_color(t_colortable *ct, uint32_t key, unsigned char *value)
 {
 	if (ct->used_slots >= ct->capacity * 0.5f && ct->capacity != MAX_COLORS - 1)
 	{
 		if (expand_colortable(ct))
-			return (NULL);
+			return (QX_MALLOC_ERR);
 	}
-	return (new_colortable_entry(ct->entries, ct->capacity, key, value, &ct->used_slots));
+	new_colortable_entry(ct->entries, ct->capacity, key, value, &ct->used_slots);
+	return (0);
 }
