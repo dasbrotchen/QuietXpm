@@ -1,4 +1,5 @@
 #include "colortable.h"
+#include <unistd.h>
 
 int	main(int ac, char **argv)
 {
@@ -31,8 +32,9 @@ int	main(int ac, char **argv)
 	ret = read_all_chunks(&f, &mdata, &pixel_data);
 	if (ret)
 	{
-		destroy_color_table(ct);
 		qx_error(ret);
+		free_pixel_data(pixel_data);
+		destroy_color_table(ct);
 		fclose(f);
 		return (1);
 	}
@@ -52,7 +54,7 @@ int	main(int ac, char **argv)
 		fclose(f);
 		return (1);
 	}
-	printf("/* XPM */\nstatic char *image[] = {\n/* columns rows colors chars-per-pixel */\n");
+	printf("//* XPM */\nstatic char *image[] = {\n/* columns rows colors chars-per-pixel */\n");
 	printf("\"%u %u %u %d\",\n", mdata.width, mdata.height, ct->used_slots, get_chars_pp(ct->used_slots));
 	print_color_mapping(ct, mdata);
 	print_pixels(pixel_data, mdata, ct);

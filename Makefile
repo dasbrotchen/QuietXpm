@@ -2,7 +2,7 @@ NAME = quietxpm
 
 CC = cc
 
-CFLAGS = -Wall -Werror -Wextra -g -I includes -MD -MP #-fsanitize=address
+CFLAGS = -Wall -Werror -Wextra -g -I includes -MD -MP -fsanitize=address
 
 SRCS = main.c \
 	   open_input_file.c \

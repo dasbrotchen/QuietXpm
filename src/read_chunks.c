@@ -12,38 +12,53 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 {
 	unsigned char	in[CHUNK];
 	unsigned char	out[CHUNK];
+	uint32_t		bytes_read;
+	uint32_t		to_read;
 	int32_t			ret;
 
-	strm->avail_in = fread(in, 1, len, *file);
-	strm->next_in = in;
-	ret = Z_OK;
-	if (ferror(*file))
-		return (Z_ERRNO);
-	if (!strm->avail_in) /* fread() fail, or IDAT chunk with len 0 */
+	if (len > CHUNK)
+		return (QX_IDAT_TOO_LARGE);
+	bytes_read = 0;
+	to_read = 0;
+	while (bytes_read != len)
 	{
-		fseek(*file, CRC_OFFSET, SEEK_CUR);
-		return (Z_ERRNO); /* for now, treat empty IDAT chunk as an error */
-	}
-	do
-	{
-		strm->avail_out = CHUNK;
-		strm->next_out = out;
-		ret = inflate(strm, Z_NO_FLUSH);
-		assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
-		switch (ret)
+		if (bytes_read + CHUNK > len)
+			to_read = len - bytes_read;
+		else
+			to_read = CHUNK;
+		bytes_read += fread(in, 1, to_read, *file);
+		strm->avail_in = bytes_read;
+		strm->next_in = in;
+		ret = Z_OK;
+		if (ferror(*file))
+			return (Z_ERRNO);
+		if (!strm->avail_in) /* fread() fail, or IDAT chunk with len 0 */
 		{
-			case Z_NEED_DICT:
-				ret = Z_DATA_ERROR;     /* and fall through */
-			case Z_DATA_ERROR:
-			case Z_MEM_ERROR:
-				return (ret);
+			fseek(*file, CRC_OFFSET, SEEK_CUR);
+			return (Z_ERRNO); /* for now, treat empty IDAT chunk as an error */
 		}
-		/* Return value is always 0, this function cannot fail. */
-		parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
-	} while (!strm->avail_out);
-	fseek(*file, CRC_OFFSET, SEEK_CUR);
-	if (ret == Z_STREAM_END) /* This should never be true */
-		return (Z_OK);
+		do
+		{
+			strm->avail_out = CHUNK;
+			strm->next_out = out;
+			ret = inflate(strm, Z_NO_FLUSH);
+			assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+			switch (ret)
+			{
+				case Z_NEED_DICT:
+					ret = Z_DATA_ERROR;     /* and fall through */
+				case Z_DATA_ERROR:
+				case Z_MEM_ERROR:
+					return (ret);
+			}
+			/* Return value is always 0, this function cannot fail. */
+			parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
+		} while (!strm->avail_out);
+		fseek(*file, CRC_OFFSET, SEEK_CUR);
+		if (ret == Z_STREAM_END) /* This should never be true */
+			return (Z_OK);
+	}
+	/* We have read the full chunk, can now return */
     return (ret == Z_OK ? Z_OK : Z_DATA_ERROR);
 }
 
