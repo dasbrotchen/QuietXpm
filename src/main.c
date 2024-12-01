@@ -54,7 +54,7 @@ int	main(int ac, char **argv)
 	}
 	printf("/* XPM */\nstatic char *image[] = {\n/* columns rows colors chars-per-pixel */\n");
 	printf("\"%u %u %u %d\",\n", mdata.width, mdata.height, ct->used_slots, get_chars_pp(ct->used_slots));
-	print_color_mapping(ct);
+	print_color_mapping(ct, mdata);
 	print_pixels(pixel_data, mdata, ct);
 	free_pixel_data(pixel_data);
 	destroy_color_table(ct);

@@ -29,6 +29,7 @@ uint32_t	rgba_to_uint(t_rgba colour)
 	uint_colour = colour.r;
 	uint_colour = (uint_colour << 8) | colour.g;
 	uint_colour = (uint_colour << 8) | colour.b;
+	uint_colour = (uint_colour << 8) | colour.a;
 	return (uint_colour);
 }
 
@@ -40,9 +41,12 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 	unsigned char	*scanline;
 	t_rgba			color;
 	uint32_t		uint_key;
+	uint32_t		transparent_key;
+	unsigned char	transparent_found;
 
 	y = 0;
 	x = 0;
+	transparent_found = 0;
 	while (y < mdata.height)
 	{
 		scanline = pixel_data[y];
@@ -50,6 +54,13 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 		{
 			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
 			uint_key = rgba_to_uint(color);
+			if (!color.a && mdata.channels == 4 && !transparent_found)
+			{
+				transparent_key = uint_key;
+				transparent_found = 1;
+			}
+			else if (!color.a && mdata.channels == 4 && transparent_found)
+				uint_key = transparent_key;
 			if (add_color(ct, uint_key, NULL))
 				return (QX_MALLOC_ERR);
 			x++;

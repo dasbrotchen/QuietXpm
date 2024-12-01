@@ -77,7 +77,7 @@ t_rgba		assemble_color_channels(unsigned char *scanline, t_pngmdata mdata,
 				uint32_t curr_pixel);
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 				struct s_colortable *ct);
-void		print_color_mapping(struct s_colortable *ct);
+void		print_color_mapping(struct s_colortable *ct, t_pngmdata mdata);
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out, t_pngmdata mdata,
 				unsigned char **pixel_data, t_chunk_state *chunk_state);
 uint32_t	read_all_chunks(FILE **file,
