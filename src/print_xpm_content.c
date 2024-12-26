@@ -16,7 +16,7 @@ t_rgba	assemble_color_channels(unsigned char *scanline, t_pngmdata mdata,
 }
 
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
-				t_colortable *ct)
+				t_colortable *ct, FILE *outf)
 {
 	uint32_t		y;
 	uint32_t		x;
@@ -32,7 +32,7 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 	while (y < mdata.height)
 	{
 		scanline = pixel_data[y];
-		printf("\"");
+		fprintf(outf, "\"");
 		while (x < mdata.width)
 		{
 			color = assemble_color_channels(scanline, mdata, x * mdata.bytes_pp);
@@ -44,21 +44,21 @@ uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
 			}
 			else if (!color.a && mdata.channels == 4 && transparent_found)
 				uint_key = transparent_key;
-			printf("%s", get_color_identifier(uint_key, ct));
+			fprintf(outf, "%s", get_color_identifier(uint_key, ct));
 			x++;
 		}
 		x = 0;
 		y++;
 		if (y != mdata.height)
-			printf("\",\n");
+			fprintf(outf, "\",\n");
 		else
-			printf("\"\n");
+			fprintf(outf, "\"\n");
 	}
-	printf("};\n");
+	fprintf(outf, "};\n");
 	return (0);
 }
 
-void	print_color_mapping(t_colortable *ct, t_pngmdata mdata)
+void	print_color_mapping(t_colortable *ct, t_pngmdata mdata, FILE *outf)
 {
 	uint32_t	j;
 	
@@ -68,9 +68,9 @@ void	print_color_mapping(t_colortable *ct, t_pngmdata mdata)
 		if (ct->entries[j].used)
 		{
 			if (!(ct->entries[j].key & 0xFF) && mdata.channels == 4)
-				printf("\"%s c None\",\n", ct->entries[j].value);
+				fprintf(outf, "\"%s c None\",\n", ct->entries[j].value);
 			else
-				printf("\"%s c #%06X\",\n", ct->entries[j].value,
+				fprintf(outf, "\"%s c #%06X\",\n", ct->entries[j].value,
 					(ct->entries[j].key >> 8) & 0xFFFFFF);
 		}
 		j++;

@@ -30,6 +30,8 @@ uint32_t	open_file(const char *filename, FILE **file)
 {
 	uint32_t	ret_validate;
 
+	if (strlen(filename) <= 4)
+		return (QX_INVALID_FILE);
 	*file = fopen(filename, "r");
 	if (!*file)
 		return (QX_OPEN_ERR);
@@ -39,5 +41,23 @@ uint32_t	open_file(const char *filename, FILE **file)
 		fclose(*file);
 		return (ret_validate);
 	}
+	return (0);
+}
+
+/* 
+	We assume the input file name is sane. Then we just replace the 'png'
+	extension with 'xpm'.
+*/
+uint32_t	open_outfile(char *filename, FILE **outfile)
+{
+	size_t		len_filename;
+
+	len_filename = strlen(filename);
+	filename[len_filename - 3] = 'x';
+	filename[len_filename - 2] = 'p';
+	filename[len_filename - 1] = 'm';
+	*outfile = fopen(filename, "w");
+	if (!*outfile)
+		return (QX_OPEN_ERR);
 	return (0);
 }

@@ -4,6 +4,7 @@
 int	main(int ac, char **argv)
 {
 	FILE			*f;
+	FILE			*outf;
 	unsigned char	**pixel_data;
 	uint32_t		ret;
 	t_colortable	*ct;
@@ -54,12 +55,22 @@ int	main(int ac, char **argv)
 		fclose(f);
 		return (1);
 	}
-	printf("//* XPM */\nstatic char *image[] = {\n/* columns rows colors chars-per-pixel */\n");
-	printf("\"%u %u %u %d\",\n", mdata.width, mdata.height, ct->used_slots, get_chars_pp(ct->used_slots));
-	print_color_mapping(ct, mdata);
-	print_pixels(pixel_data, mdata, ct);
+	ret = open_outfile(argv[1], &outf);
+	if (ret)
+	{
+		qx_error(ret);
+		free_pixel_data(pixel_data);
+		destroy_color_table(ct);
+		fclose(f);
+		return (1);
+	}
+	fprintf(outf, "/* XPM */\nstatic char *image[] = {\n/* columns rows colors chars-per-pixel */\n");
+	fprintf(outf, "\"%u %u %u %d\",\n", mdata.width, mdata.height, ct->used_slots, get_chars_pp(ct->used_slots));
+	print_color_mapping(ct, mdata, outf);
+	print_pixels(pixel_data, mdata, ct, outf);
 	free_pixel_data(pixel_data);
 	destroy_color_table(ct);
 	fclose(f);
+	fclose(outf);
 	return (0);
 }

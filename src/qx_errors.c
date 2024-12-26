@@ -3,7 +3,9 @@
 void	qx_error(uint32_t err_code)
 {
 	if (err_code == QX_OPEN_ERR)
-		fprintf(stderr, QX": cannot open input file\n");
+		fprintf(stderr, QX": cannot open input or output file\n");
+	if (err_code == QX_INVALID_FILE)
+		fprintf(stderr, QX": file has to be PNG\n");
 	if (err_code == QX_SIGN_ERR)
 		fprintf(stderr, QX": not a PNG file\n");
 	if (err_code == QX_MALLOC_ERR)

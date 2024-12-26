@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <fcntl.h>
 #include <zlib.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -26,6 +27,7 @@ typedef enum e_qxerrors
 	QX_INVALID_FILTER = 7,
 	QX_INVALID_COLORTYPE = 8,
 	QX_IDAT_TOO_LARGE = 9,
+	QX_INVALID_FILE = 10,
 }	t_qxerrors;
 
 typedef struct s_pngmdata
@@ -77,13 +79,14 @@ uint32_t	store_pixel_colors(unsigned char **pixel_data, t_pngmdata mdata,
 t_rgba		assemble_color_channels(unsigned char *scanline, t_pngmdata mdata,
 				uint32_t curr_pixel);
 uint32_t	print_pixels(unsigned char **pixel_data, t_pngmdata mdata,
-				struct s_colortable *ct);
-void		print_color_mapping(struct s_colortable *ct, t_pngmdata mdata);
+				struct s_colortable *ct, FILE *outf);
+void		print_color_mapping(struct s_colortable *ct, t_pngmdata mdata, FILE *outf);
 uint32_t	parse_data_chunk(uint32_t written, unsigned char *out, t_pngmdata mdata,
 				unsigned char **pixel_data, t_chunk_state *chunk_state);
 uint32_t	read_all_chunks(FILE **file,
 				t_pngmdata *mdata, unsigned char ***pixel_data);
 uint32_t	open_file(const char *filename, FILE **file);
+uint32_t	open_outfile(char *filename, FILE **outfile);
 void		free_pixel_data(unsigned char **pixel_data);
 void		qx_error(uint32_t err_code);
 
