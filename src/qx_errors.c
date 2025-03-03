@@ -22,4 +22,6 @@ void	qx_error(uint32_t err_code)
 		fprintf(stderr, QX": PNG file color type not supported (yet!)\n");
 	if (err_code == QX_IDAT_TOO_LARGE)
 		fprintf(stderr, QX": IDAT chunk too large. Aborting.\n");
+	if (err_code == QX_INVALID_FILTER_TYPE)
+		fprintf(stderr, QX": Invalid filter type in IDAT chunk. File is probably corrupted. Aborting.\n");
 }

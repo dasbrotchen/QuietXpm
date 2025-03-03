@@ -28,6 +28,7 @@ typedef enum e_qxerrors
 	QX_INVALID_COLORTYPE = 8,
 	QX_IDAT_TOO_LARGE = 9,
 	QX_INVALID_FILE = 10,
+	QX_INVALID_FILTER_TYPE = 11,
 }	t_qxerrors;
 
 typedef struct s_pngmdata

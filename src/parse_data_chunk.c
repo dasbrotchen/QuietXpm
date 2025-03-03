@@ -206,7 +206,8 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 			filter_type = chunk_state->last_filter_type;
 		else
 		{
-			filter_type = *out++;
+			filter_type = *out;
+			out++;
 			bytepos.decoded++;
 			chunk_state->last_filter_type = filter_type;
 		}
@@ -225,6 +226,8 @@ uint32_t	parse_data_chunk(uint32_t written, unsigned char *out,
 			chunk_state->left_in_scanline = apply_average_filter(pixel_data, mdata, out, chunk_state->current_scanline, &bytepos);
 		else if (filter_type == 4)
 			chunk_state->left_in_scanline = apply_paeth_filter(pixel_data, mdata, out, chunk_state->current_scanline, &bytepos);
+		else
+			return (QX_INVALID_FILTER_TYPE);
 		if (bytepos.left_overs)
 			out += bytepos.left_overs;
 		else

@@ -51,8 +51,8 @@ static int32_t	process_data_chunk(FILE **file, uint32_t len,
 				case Z_MEM_ERROR:
 					return (ret);
 			}
-			/* Return value is always 0, this function cannot fail. */
-			parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state);
+			if ((ret = parse_data_chunk(CHUNK - strm->avail_out, out, mdata, pixel_data, chunk_state)))
+				return (ret);
 		} while (!strm->avail_out);
 		fseek(*file, CRC_OFFSET, SEEK_CUR);
 		if (ret == Z_STREAM_END) /* This should never be true */
